@@ -116,21 +116,30 @@ class VideoDownloader:
             quality_dict = {}
             for fmt in audio_formats:
                 ext = fmt.get('ext', 'unknown')
-                abr = fmt.get('abr', 0)
+                abr = fmt.get('abr') or 0  # Handle None values
                 acodec = fmt.get('acodec', 'unknown')
                 
-                if abr:
-                    quality = f"{ext.upper()} - {abr}kbps ({acodec})"
+                # Create a safe numeric value for comparison
+                safe_abr = abr if isinstance(abr, (int, float)) and abr > 0 else 0
+                
+                if safe_abr > 0:
+                    quality = f"{ext.upper()} - {safe_abr}kbps ({acodec})"
                 else:
                     quality = f"{ext.upper()} ({acodec})"
                 
                 if quality not in quality_dict:
                     quality_dict[quality] = fmt
-                elif fmt.get('abr', 0) > quality_dict[quality].get('abr', 0):
-                    quality_dict[quality] = fmt
+                else:
+                    # Safe comparison with None handling
+                    current_abr = quality_dict[quality].get('abr') or 0
+                    current_safe_abr = current_abr if isinstance(current_abr, (int, float)) and current_abr > 0 else 0
+                    
+                    if safe_abr > current_safe_abr:
+                        quality_dict[quality] = fmt
             
+            # Sort by bitrate, handling None values safely
             qualities = sorted(quality_dict.items(), 
-                             key=lambda x: x[1].get('abr', 0), 
+                             key=lambda x: (x[1].get('abr') or 0) if isinstance(x[1].get('abr'), (int, float)) else 0, 
                              reverse=True)
         
         return qualities
